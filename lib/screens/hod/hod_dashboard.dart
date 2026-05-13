@@ -6,6 +6,7 @@ import '../../core/utils/helpers.dart';
 import '../../providers/auth_provider.dart';
 import '../auth/login_screen.dart';
 import 'department_archive_screen.dart';
+import 'assign_level_adviser_screen.dart';
 import 'announcement_management_screen.dart';
 
 class HodDashboard extends ConsumerWidget {
@@ -173,3 +174,15 @@ class _ToolCard extends StatelessWidget {
     );
   }
 }
+_ToolCard(
+  title: 'Assign Level Adviser',
+  subtitle: 'Assign an adviser using staff email + level',
+  icon: Icons.person_add_alt_1_rounded,
+  color: AppColors.info,
+  onTap: () {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AssignLevelAdviserScreen()),
+    );
+  },
+),
+const SizedBox(height: 10),
