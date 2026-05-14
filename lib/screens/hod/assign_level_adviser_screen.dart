@@ -41,10 +41,7 @@ class _AssignLevelAdviserScreenState
       _error = null;
     });
 
-    final res = await SupabaseService().getAdvisersByDepartment(
-      department,
-      // no level filter here; we want to show all advisers
-    );
+    final res = await SupabaseService().getAdvisersByDepartment(department);
 
     if (!mounted) return;
 
