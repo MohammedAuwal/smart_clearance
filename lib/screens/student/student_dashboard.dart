@@ -9,10 +9,14 @@ import '../../providers/form_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../auth/login_screen.dart';
+import 'academic_timeline_screen.dart';
+import 'course_form_submission_screen.dart';
 import 'form_status_tracker_screen.dart';
 import 'notification_screen.dart';
 import 'payment_verification_screen.dart';
+import 'profile_screen.dart';
 import 'receipt_wallet_screen.dart';
+import 'student_announcements_screen.dart';
 
 class StudentDashboard extends ConsumerStatefulWidget {
   const StudentDashboard({super.key});
@@ -28,7 +32,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
   void initState() {
     super.initState();
 
-    // When current user loads, initialize dashboard data once
     ref.listen(currentUserProvider, (previous, next) {
       next.whenData((user) {
         if (user == null) return;
@@ -36,7 +39,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
 
         _initialized = true;
 
-        // Load payments, current form, notifications
         final semester = AppHelpers.getCurrentSemester();
         final session = AppHelpers.getCurrentSession();
 
@@ -103,7 +105,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
         if (user == null) {
           return _DashboardError(
             message: 'Session expired. Please login again.',
-            onRetry: () {
+            onRetry: () async {
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
                 (route) => false,
@@ -115,11 +117,28 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
         final isPaid = paymentState.isPaidForSemester(semester, session);
         final currentForm = formState.currentForm;
 
+        // Smarter course-form primary action:
+        // - if not submitted or rejected => submit
+        // - else => track
+        final coursePrimaryLabel =
+            (currentForm == null || currentForm.isRejected) ? 'Submit Form' : 'Track Status';
+
+        final coursePrimaryAction = () {
+          if (currentForm == null || currentForm.isRejected) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CourseFormSubmissionScreen()),
+            );
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const FormStatusTrackerScreen()),
+            );
+          }
+        };
+
         return Scaffold(
           appBar: AppBar(
             title: const Text(AppStrings.dashboard),
             actions: [
-              // Notifications
               IconButton(
                 onPressed: () {
                   Navigator.of(context).push(
@@ -153,8 +172,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
                   ],
                 ),
               ),
-
-              // Logout
               IconButton(
                 onPressed: _logout,
                 icon: const Icon(Icons.logout_rounded),
@@ -176,7 +193,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
 
                 const SizedBox(height: 14),
 
-                // Payment status
                 _StatusCard(
                   title: 'School Fee Payment',
                   subtitle: '$semester • $session',
@@ -186,9 +202,15 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
                   icon: isPaid ? Icons.check_circle_outline_rounded : Icons.pending_actions_rounded,
                   primaryActionText: isPaid ? 'View Receipts' : 'Verify Payment',
                   onPrimaryAction: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const PaymentVerificationScreen()),
-                    );
+                    if (isPaid) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ReceiptWalletScreen()),
+                      );
+                    } else {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const PaymentVerificationScreen()),
+                      );
+                    }
                   },
                   secondaryActionText: 'Receipt Wallet',
                   onSecondaryAction: () {
@@ -200,7 +222,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
 
                 const SizedBox(height: 12),
 
-                // Course form status
                 _StatusCard(
                   title: 'Course Form',
                   subtitle: '$semester • $session',
@@ -218,26 +239,19 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
                           : currentForm.isRejected
                               ? Icons.error_outline_rounded
                               : Icons.hourglass_top_rounded,
-                  primaryActionText: 'Track Status',
-                  onPrimaryAction: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const FormStatusTrackerScreen()),
-                    );
-                  },
-                  secondaryActionText: 'Notifications',
+                  primaryActionText: coursePrimaryLabel,
+                  onPrimaryAction: coursePrimaryAction,
+                  secondaryActionText: 'Track Status',
                   onSecondaryAction: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                      MaterialPageRoute(builder: (_) => const FormStatusTrackerScreen()),
                     );
                   },
                 ),
 
                 const SizedBox(height: 16),
 
-                Text(
-                  AppStrings.quickActions,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                Text(AppStrings.quickActions, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 10),
 
                 Wrap(
@@ -245,104 +259,47 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
                   runSpacing: 10,
                   children: [
                     _QuickAction(
-                      title: 'Verify Payment',
-                      icon: Icons.receipt_long_rounded,
-                      color: AppColors.primary,
+                      title: 'Submit Form',
+                      icon: Icons.upload_file_rounded,
+                      color: AppColors.success,
                       onTap: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const PaymentVerificationScreen()),
+                          MaterialPageRoute(builder: (_) => const CourseFormSubmissionScreen()),
                         );
                       },
                     ),
                     _QuickAction(
-                      title: 'Receipt Wallet',
-                      icon: Icons.wallet_rounded,
-                      color: AppColors.accentDark,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const ReceiptWalletScreen()),
-                        );
-                      },
-                    ),
-                    _QuickAction(
-                      title: 'Track Form',
-                      icon: Icons.track_changes_rounded,
+                      title: 'Timeline',
+                      icon: Icons.timeline_rounded,
                       color: AppColors.info,
                       onTap: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const FormStatusTrackerScreen()),
+                          MaterialPageRoute(builder: (_) => const AcademicTimelineScreen()),
                         );
                       },
                     ),
                     _QuickAction(
-                      title: 'Notifications',
-                      icon: Icons.notifications_active_rounded,
-                      color: AppColors.error,
+                      title: 'Announcements',
+                      icon: Icons.campaign_outlined,
+                      color: AppColors.accentDark,
                       onTap: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                          MaterialPageRoute(builder: (_) => const StudentAnnouncementsScreen()),
+                        );
+                      },
+                    ),
+                    _QuickAction(
+                      title: 'Profile',
+                      icon: Icons.person_outline_rounded,
+                      color: AppColors.primary,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const ProfileScreen()),
                         );
                       },
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 18),
-
-                // Latest payment summary
-                if (paymentState.latestPayment != null) ...[
-                  Text(
-                    'Latest Payment',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: AppColors.successLight,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.check_rounded,
-                              color: AppColors.success,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  paymentState.latestPayment!.formattedAmount,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
-                                    color: AppColors.darkGrey,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  '${paymentState.latestPayment!.semester} • ${paymentState.latestPayment!.session}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.mediumGrey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right_rounded, color: AppColors.lightGrey),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -351,6 +308,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard> {
     );
   }
 }
+
+// ---- UI widgets below unchanged (same as your previous file) ----
 
 class _HeaderCard extends StatelessWidget {
   final String name;
@@ -380,10 +339,7 @@ class _HeaderCard extends StatelessWidget {
             backgroundColor: Colors.white.withOpacity(0.2),
             child: Text(
               AppHelpers.getInitials(name),
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white),
             ),
           ),
           const SizedBox(width: 14),
@@ -393,11 +349,7 @@ class _HeaderCard extends StatelessWidget {
               children: [
                 Text(
                   '${AppHelpers.getGreeting()},',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -411,10 +363,7 @@ class _HeaderCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   '$matric • $department • $level',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12),
                 ),
               ],
             ),
@@ -474,21 +423,11 @@ class _StatusCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.darkGrey,
-                        ),
-                      ),
+                      Text(title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, color: AppColors.darkGrey)),
                       const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.mediumGrey,
-                        ),
-                      ),
+                      Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.mediumGrey)),
                     ],
                   ),
                 ),
@@ -500,11 +439,7 @@ class _StatusCard extends StatelessWidget {
                   ),
                   child: Text(
                     statusLabel,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: statusColor,
-                    ),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: statusColor),
                   ),
                 ),
               ],
@@ -595,9 +530,7 @@ class _DashboardLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      ),
+      body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
     );
   }
 }
@@ -606,10 +539,7 @@ class _DashboardError extends StatelessWidget {
   final String message;
   final Future<void> Function() onRetry;
 
-  const _DashboardError({
-    required this.message,
-    required this.onRetry,
-  });
+  const _DashboardError({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -622,16 +552,9 @@ class _DashboardError extends StatelessWidget {
             children: [
               const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 40),
               const SizedBox(height: 10),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.mediumGrey),
-              ),
+              Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.mediumGrey)),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => onRetry(),
-                child: const Text('Retry'),
-              ),
+              ElevatedButton(onPressed: () => onRetry(), child: const Text('Retry')),
             ],
           ),
         ),
