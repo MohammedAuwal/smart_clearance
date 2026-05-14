@@ -119,29 +119,37 @@ class SupabaseService {
   }
 
   // ─── Get All Advisers in a Department ─────────────────────────────────────
-  Future<ServiceResult<List<UserModel>>> getAdvisersByDepartment(
-      String department) async {
-    try {
-      final response = await _client
-          .from('users')
-          .select()
-          .eq('department', department)
-          .eq('role', 'adviser')
-          .eq('is_active', true);
+ Future<ServiceResult<List<UserModel>>> getAdvisersByDepartment(
+  String department, {
+  String? level,
+}) async {
+  try {
+    var query = _client
+        .from('users')
+        .select()
+        .eq('department', department)
+        .eq('role', 'adviser')
+        .eq('is_active', true);
 
-      final advisers = (response as List<dynamic>)
-          .map((item) => UserModel.fromJson(item as Map<String, dynamic>))
-          .toList();
-
-      return ServiceResult.success(advisers);
-    } on PostgrestException catch (e) {
-      return ServiceResult.error(
-        _getSupabaseErrorMessage(e.code ?? '', e.message),
-      );
-    } catch (e) {
-      return ServiceResult.error('Failed to fetch advisers.');
+    if (level != null && level.trim().isNotEmpty) {
+      query = query.eq('current_level', level);
     }
+
+    final response = await query.order('full_name', ascending: true);
+
+    final advisers = (response as List<dynamic>)
+        .map((item) => UserModel.fromJson(item as Map<String, dynamic>))
+        .toList();
+
+    return ServiceResult.success(advisers);
+  } on PostgrestException catch (e) {
+    return ServiceResult.error(
+      _getSupabaseErrorMessage(e.code ?? '', e.message),
+    );
+  } catch (e) {
+    return ServiceResult.error('Failed to fetch advisers.');
   }
+}
 
   // ════════════════════════════════════════════════════════════════════════════
   // PAYMENT OPERATIONS
