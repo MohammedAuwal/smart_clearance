@@ -39,6 +39,23 @@ class SupabaseService {
     }
   }
 
+  Future<ServiceResult<UserModel>> getUserByEmail(String email) async {
+  try {
+    final response = await _client
+        .from('users')
+        .select()
+        .eq('email', email.trim().toLowerCase())
+        .single();
+
+    return ServiceResult.success(UserModel.fromJson(response));
+  } on PostgrestException catch (e) {
+    return ServiceResult.error(
+      _getSupabaseErrorMessage(e.code ?? '', e.message),
+    );
+  } catch (e) {
+    return ServiceResult.error('Failed to fetch user by email.');
+  }
+}
   // ─── Get User By Firebase UID ─────────────────────────────────────────────
   Future<ServiceResult<UserModel>> getUserByFirebaseUid(
       String firebaseUid) async {
