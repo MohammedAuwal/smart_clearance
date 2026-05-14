@@ -64,7 +64,10 @@ class _CourseFormSubmissionScreenState
 
     setState(() => _loadingAdvisers = true);
 
-    final result = await SupabaseService().getAdvisersByDepartment(user.department);
+    final result = await SupabaseService().getAdvisersByDepartment(
+  user.department,
+  level: user.currentLevel, // only advisers assigned to this level
+);
 
     if (!mounted) return;
 
