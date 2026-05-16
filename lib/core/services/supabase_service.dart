@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:math';
 import '../../models/user_model.dart';
 import '../../models/payment_model.dart';
 import '../../models/course_form_model.dart';
@@ -921,4 +922,85 @@ class ServiceResult<T> {
   // Convenience getter
   bool get hasError => !success;
   bool get hasData => success && data != null;
+}
+// ════════════════════════════════════════════════════════════════════════════
+// STAFF INVITE OPERATIONS (HOD -> Staff onboarding)
+// Table: staff_invites
+// Columns suggested:
+// id uuid pk default gen_random_uuid()
+// token text unique
+// email text null
+// department text
+// role text  (adviser, ict_admin, hod)
+// assigned_level text null (only for adviser)
+// is_used boolean default false
+// created_by uuid
+// created_at timestamp default now()
+// used_by uuid null
+// used_at timestamp null
+// expires_at timestamp null
+// ════════════════════════════════════════════════════════════════════════════
+
+Future<ServiceResult<Map<String, dynamic>>> createStaffInvite({
+  required String createdBy,
+  required String department,
+  required String role,
+  String? assignedLevel,
+  String? email,
+  DateTime? expiresAt,
+  required String token,
+}) async {
+  try {
+    final response = await _client.from('staff_invites').insert({
+      'token': token,
+      'email': email?.trim().toLowerCase(),
+      'department': department,
+      'role': role,
+      'assigned_level': assignedLevel,
+      'is_used': false,
+      'created_by': createdBy,
+      'expires_at': expiresAt?.toIso8601String(),
+    }).select().single();
+
+    return ServiceResult.success(response as Map<String, dynamic>);
+  } on PostgrestException catch (e) {
+    return ServiceResult.error(_getSupabaseErrorMessage(e.code ?? '', e.message));
+  } catch (e) {
+    return ServiceResult.error('Failed to create invite. Please try again.');
+  }
+}
+
+Future<ServiceResult<Map<String, dynamic>>> getStaffInviteByToken(String token) async {
+  try {
+    final response = await _client
+        .from('staff_invites')
+        .select()
+        .eq('token', token.trim())
+        .single();
+
+    return ServiceResult.success(response as Map<String, dynamic>);
+  } on PostgrestException catch (e) {
+    return ServiceResult.error(_getSupabaseErrorMessage(e.code ?? '', e.message));
+  } catch (e) {
+    return ServiceResult.error('Invite not found or invalid.');
+  }
+}
+
+Future<ServiceResult<void>> markStaffInviteUsed({
+  required String token,
+  required String usedBy,
+}) async {
+  try {
+    await _client.from('staff_invites').update({
+      'is_used': true,
+      'used_by': usedBy,
+      'used_at': DateTime.now().toIso8601String(),
+    }).eq('token', token.trim());
+
+    return ServiceResult.success(null);
+  } on PostgrestException catch (e) {
+    return ServiceResult.error(_getSupabaseErrorMessage(e.code ?? '', e.message));
+  } catch (e) {
+    return ServiceResult.error('Failed to update invite usage.');
+  }
 }
