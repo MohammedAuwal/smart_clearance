@@ -6,6 +6,7 @@ import '../../core/constants/app_strings.dart';
 import '../../core/utils/helpers.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/form_provider.dart';
+import 'resubmit_form_screen.dart';
 
 class FormStatusTrackerScreen extends ConsumerStatefulWidget {
   const FormStatusTrackerScreen({super.key});
@@ -27,30 +28,26 @@ class _FormStatusTrackerScreenState extends ConsumerState<FormStatusTrackerScree
         if (_initialized) return;
         _initialized = true;
 
-        final semester = AppHelpers.getCurrentSemester();
-        final session = AppHelpers.getCurrentSession();
-
-        await ref.read(formProvider.notifier).loadCurrentForm(
-              studentId: user.id,
-              semester: semester,
-              session: session,
-            );
+        await _reload(user.id);
       });
     });
+  }
+
+  Future<void> _reload(String studentId) async {
+    final semester = AppHelpers.getCurrentSemester();
+    final session = AppHelpers.getCurrentSession();
+
+    await ref.read(formProvider.notifier).loadCurrentForm(
+          studentId: studentId,
+          semester: semester,
+          session: session,
+        );
   }
 
   Future<void> _refresh() async {
     final user = await ref.read(currentUserProvider.future);
     if (user == null) return;
-
-    final semester = AppHelpers.getCurrentSemester();
-    final session = AppHelpers.getCurrentSession();
-
-    await ref.read(formProvider.notifier).loadCurrentForm(
-          studentId: user.id,
-          semester: semester,
-          session: session,
-        );
+    await _reload(user.id);
   }
 
   @override
@@ -84,18 +81,12 @@ class _FormStatusTrackerScreenState extends ConsumerState<FormStatusTrackerScree
                   children: [
                     const Text(
                       'Current Semester',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.darkGrey,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.darkGrey),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '$semester • $session',
-                      style: const TextStyle(
-                        color: AppColors.mediumGrey,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: AppColors.mediumGrey, fontSize: 12),
                     ),
                   ],
                 ),
@@ -120,31 +111,64 @@ class _FormStatusTrackerScreenState extends ConsumerState<FormStatusTrackerScree
                       SizedBox(height: 10),
                       Text(
                         AppStrings.noFormThisSemester,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.darkGrey,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.darkGrey),
                       ),
                       SizedBox(height: 6),
                       Text(
                         AppStrings.noFormSub,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: AppColors.mediumGrey,
-                          height: 1.6,
-                        ),
+                        style: TextStyle(color: AppColors.mediumGrey, height: 1.6),
                       ),
                     ],
                   ),
                 ),
               )
-            else
+            else ...[
               _FormStatusView(
                 status: formState.currentForm!.submissionStatus,
                 rejectionReason: formState.currentForm!.rejectionReason,
                 submittedAt: formState.currentForm!.submittedAt,
                 reviewedAt: formState.currentForm!.reviewedAt,
               ),
+              const SizedBox(height: 12),
+
+              if (formState.currentForm!.isRejected)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Resubmission',
+                          style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.darkGrey),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Upload a corrected PDF and resubmit directly to your adviser.',
+                          style: TextStyle(color: AppColors.mediumGrey, height: 1.5, fontSize: 12),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final ok = await Navigator.of(context).push<bool>(
+                              MaterialPageRoute(
+                                builder: (_) => ResubmitFormScreen(form: formState.currentForm!),
+                              ),
+                            );
+
+                            if (ok == true) {
+                              await _refresh();
+                            }
+                          },
+                          icon: const Icon(Icons.upload_file_rounded, color: Colors.white),
+                          label: const Text('Resubmit Corrected PDF'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ],
         ),
       ),
@@ -184,30 +208,19 @@ class _FormStatusView extends StatelessWidget {
                     color: props.background,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    _statusIcon(status),
-                    color: props.color,
-                  ),
+                  child: Icon(_statusIcon(status), color: props.color),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Form Status',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.darkGrey,
-                        ),
-                      ),
+                      const Text('Form Status',
+                          style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.darkGrey)),
                       const SizedBox(height: 3),
                       Text(
                         props.label,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          color: props.color,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.w900, color: props.color),
                       ),
                     ],
                   ),
@@ -216,23 +229,16 @@ class _FormStatusView extends StatelessWidget {
             ),
           ),
         ),
-
         const SizedBox(height: 12),
 
-        // Timeline
         Card(
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Timeline',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.darkGrey,
-                  ),
-                ),
+                const Text('Timeline',
+                    style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.darkGrey)),
                 const SizedBox(height: 14),
                 _TimelineItem(
                   title: 'Submitted',
@@ -266,18 +272,12 @@ class _FormStatusView extends StatelessWidget {
                 children: [
                   const Text(
                     AppStrings.rejectionReason,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.darkGrey,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.darkGrey),
                   ),
                   const SizedBox(height: 10),
                   Text(
                     rejectionReason!,
-                    style: const TextStyle(
-                      color: AppColors.mediumGrey,
-                      height: 1.6,
-                    ),
+                    style: const TextStyle(color: AppColors.mediumGrey, height: 1.6),
                   ),
                 ],
               ),
@@ -348,22 +348,11 @@ class _TimelineItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.darkGrey,
-                  ),
-                ),
+                Text(title,
+                    style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.darkGrey)),
                 if (subtitle != null) ...[
                   const SizedBox(height: 3),
-                  Text(
-                    subtitle!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.mediumGrey,
-                    ),
-                  ),
+                  Text(subtitle!, style: const TextStyle(fontSize: 12, color: AppColors.mediumGrey)),
                 ],
               ],
             ),
