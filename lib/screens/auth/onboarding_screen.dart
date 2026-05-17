@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
 import 'login_screen.dart';
+import 'staff_register_screen.dart';
 import 'register_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -159,30 +160,51 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const SizedBox(height: 14),
 
                   // Create Account Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        AppStrings.dontHaveAccount,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 14,
-                          color: AppColors.mediumGrey,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _goToRegister,
-                        child: const Text(
-                          AppStrings.signUp,
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ],
+                 Column(
+  children: [
+    Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text(
+          AppStrings.dontHaveAccount,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 14,
+            color: AppColors.mediumGrey,
+          ),
+        ),
+        GestureDetector(
+          onTap: _goToRegister,
+          child: const Text(
+            AppStrings.signUp,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ],
+    ),
+    const SizedBox(height: 10),
+    TextButton(
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const StaffRegisterScreen()),
+        );
+      },
+      child: const Text(
+        'Staff? Register with Invite Code',
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ),
+  ],
+)
                   ),
                 ],
               ),
