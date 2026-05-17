@@ -11,22 +11,25 @@ class CloudinaryService {
   static const String _uploadPreset = 'YOUR_UNSIGNED_UPLOAD_PRESET';
 
   Future<CloudinaryResult> uploadCourseFormPdf({
-    required File file,
-    required String studentMatric,
-    required String semester,
-    required String session,
-  }) async {
-    final sanitizedMatric = studentMatric.replaceAll('/', '_');
-    final sanitizedSession = session.replaceAll('/', '_');
+  required File file,
+  required String studentMatric,
+  required String semester,
+  required String session,
+  String? fileTag, // NEW: used for resubmissions so it won't overwrite old file
+}) async {
+  final sanitizedMatric = studentMatric.replaceAll('/', '_');
+  final sanitizedSession = session.replaceAll('/', '_');
 
-    return _uploadFile(
-      file: file,
-      resourceType: 'raw', // PDF -> raw
-      folder: 'smart_clearance/course_forms/$sanitizedMatric',
-      publicId: '${sanitizedSession}_${semester.replaceAll(' ', '_')}',
-    );
-  }
+  final baseId = '${sanitizedSession}_${semester.replaceAll(' ', '_')}';
+  final publicId = (fileTag == null || fileTag.trim().isEmpty) ? baseId : '${baseId}_$fileTag';
 
+  return _uploadFile(
+    file: file,
+    resourceType: 'raw',
+    folder: 'smart_clearance/course_forms/$sanitizedMatric',
+    publicId: publicId,
+  );
+}
   Future<CloudinaryResult> uploadProfilePhoto({
     required File file,
     required String userId,
