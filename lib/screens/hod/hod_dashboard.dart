@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'create_staff_invite_screen.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/helpers.dart';
 import '../../providers/auth_provider.dart';
@@ -209,6 +209,20 @@ _ToolCard(
   onTap: () {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const ManageAdvisersScreen()),
+    );
+  },
+),
+const SizedBox(height: 10),
+
+//iiiiiii
+_ToolCard(
+  title: 'Create Staff Invite',
+  subtitle: 'Generate staff registration code (adviser / ICT / HOD)',
+  icon: Icons.key_rounded,
+  color: AppColors.info,
+  onTap: () {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const CreateStaffInviteScreen()),
     );
   },
 ),
