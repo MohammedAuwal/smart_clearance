@@ -481,13 +481,13 @@ class SupabaseService {
   }) async {
     try {
       await _client.from('course_forms').update({
-        'submission_status': 'submitted',
-        'form_pdf_url': newPdfUrl,
-        'rejection_reason': null,
-        'reviewed_by': null,
-        'reviewed_at': null,
-        'submitted_at': DateTime.now().toIso8601String(),
-      }).eq('id', formId);
+  'submission_status': 'submitted',
+  'form_pdf_url': newPdfUrl,
+  'rejection_reason': null,
+  'reviewed_at': null,
+  'digital_stamp': false,
+  'submitted_at': DateTime.now().toIso8601String(),
+}).eq('id', formId);
 
       return ServiceResult.success(null);
     } on PostgrestException catch (e) {
